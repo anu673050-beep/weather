@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather App</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .weather-box {
+            background: white;
+            width: 350px;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .search {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 70%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #217dbb;
+        }
+
+        #city {
+            font-size: 24px;
+            color: #333;
+        }
+
+        #icon {
+            font-size: 65px;
+            margin: 15px;
+        }
+
+        #temperature {
+            font-size: 48px;
+            color: #3498db;
+        }
+
+        #condition {
+            color: #666;
+            margin: 10px 0 25px;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .detail {
+            background: #eaf6ff;
+            padding: 18px 10px;
+            border-radius: 12px;
+        }
+
+        .detail p {
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .detail h3 {
+            color: #333;
+        }
+
+        #message {
+            margin-top: 20px;
+            color: #e74c3c;
+            font-size: 14px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="weather-box">
+
+        <h1>🌤 Weather App</h1>
+
+        <div class="search">
+            <input type="text" id="cityInput" placeholder="Enter City Name">
+
+            <button onclick="getWeather()">Search</button>
+        </div>
+
+        <h2 id="city">Varanasi</h2>
+
+        <div id="icon">☀️</div>
+
+        <h1 id="temperature">--°C</h1>
+
+        <p id="condition">Weather Condition</p>
+
+        <div class="details">
+
+            <div class="detail">
+                <p>💧 Humidity</p>
+                <h3 id="humidity">--%</h3>
+            </div>
+
+            <div class="detail">
+                <p>💨 Wind Speed</p>
+                <h3 id="wind">-- km/h</h3>
+            </div>
+
+            <div class="detail">
+                <p>🌡 Feels Like</p>
+                <h3 id="feels">--°C</h3>
+            </div>
+
+            <div class="detail">
+                <p>🌧 Rain</p>
+                <h3 id="rain">-- mm</h3>
+            </div>
+
+        </div>
+
+        <p id="message"></p>
+
+    </div>
+
+
+    <script>
+
+        async function getWeather() {
+
+            let cityName = document.getElementById("cityInput").value.trim();
+
+            let message = document.getElementById("message");
+
+            if (cityName === "") {
+                message.innerText = "Please enter city name!";
+                return;
+            }
+
+            message.innerText = "Loading weather...";
+
+            try {
+
+                // Get City Location
+
+                let geoURL = "https://geocoding-api.open-meteo.com/v1/search?name="
+                    + encodeURIComponent(cityName) + "&count=1&language=en&format=json";
+
+                let geoResponse = await fetch(geoURL);
+
+                if (!geoResponse.ok) {
+                    throw new Error("Location search failed");
+                }
+
+                let geoData = await geoResponse.json();
+
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error("City not found!");
+                }
+
+                let location = geoData.results[0];
+
+                let latitude = location.latitude;
+                let longitude = location.longitude;
+
+                // Get Weather Data
+
+                let weatherURL = "https://api.open-meteo.com/v1/forecast?latitude="
+                    + latitude + "&longitude=" + longitude
+                    + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&timezone=auto";
+
+                let weatherResponse = await fetch(weatherURL);
+
+                if (!weatherResponse.ok) {
+                    throw new Error("Weather data unavailable");
+                }
+
+                let weatherData = await weatherResponse.json();
+
+                let current = weatherData.current;
+
+                // Display Data
+
+                document.getElementById("city").innerText =
+                    location.name + ", " + location.country;
+
+                document.getElementById("temperature").innerText =
+                    current.temperature_2m + "°C";
+
+                document.getElementById("humidity").innerText =
+                    current.relative_humidity_2m + "%";
+
+                document.getElementById("wind").innerText =
+                    current.wind_speed_10m + " km/h";
+
+                document.getElementById("feels").innerText =
+                    current.apparent_temperature + "°C";
+
+                document.getElementById("rain").innerText =
+                    current.precipitation + " mm";
+
+                // Weather Condition
+
+                let code = current.weather_code;
+                let condition = "";
+                let icon = "";
+
+                if (code === 0) {
+                    condition = "Clear Sky";
+                    icon = current.is_day ? "☀️" : "🌙";
+                }
+                else if (code <= 3) {
+                    condition = "Partly Cloudy";
+                    icon = "⛅";
+                }
+                else if (code <= 48) {
+                    condition = "Foggy";
+                    icon = "🌫️";
+                }
+                else if (code <= 57) {
+                    condition = "Drizzle";
+                    icon = "🌦️";
+                }
+                else if (code <= 67) {
+                    condition = "Rainy";
+                    icon = "🌧️";
+                }
+                else if (code <= 77) {
+                    condition = "Snowy";
+                    icon = "❄️";
+                }
+                else if (code <= 82) {
+                    condition = "Rain Showers";
+                    icon = "🌦️";
+                }
+                else if (code <= 86) {
+                    condition = "Snow Showers";
+                    icon = "🌨️";
+                }
+                else if (code >= 95) {
+                    condition = "Thunderstorm";
+                    icon = "⛈️";
+                }
+                else {
+                    condition = "Cloudy";
+                    icon = "☁️";
+                }
+
+                document.getElementById("condition").innerText = condition;
+
+                document.getElementById("icon").innerText = icon;
+
+                message.innerText = "Weather updated successfully!";
+
+            }
+
+            catch (error) {
+
+                message.innerText = error.message === "City not found!"
+                    ? "City not found! Try another city."
+                    : "Unable to fetch weather. Check your internet.";
+
+                console.log(error);
+
+            }
+
+        }
+
+        // Default City
+
+        window.onload = function() {
+
+            document.getElementById("cityInput").value = "Varanasi";
+
+            getWeather();
+
+        };
+
+        // Enter Button
+
+        document.getElementById("cityInput").addEventListener("keypress", function(event) {
+
+            if (event.key === "Enter") {
+                getWeather();
+            }
+
+        });
+
+    </script>
+
+</body>
+</html>
